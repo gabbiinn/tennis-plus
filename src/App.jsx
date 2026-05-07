@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import BottomNav from './components/BottomNav';
@@ -9,9 +10,11 @@ import ReserverScreen from './screens/ReserverScreen';
 import MessagesScreen from './screens/MessagesScreen';
 import TournoisScreen from './screens/TournoisScreen';
 import ProfilScreen from './screens/ProfilScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 
 export default function App() {
   const { user, loading } = useAuth();
+  const [onboardingFait, setOnboardingFait] = useState(false);
 
   if (loading) {
     return (
@@ -23,6 +26,10 @@ export default function App() {
 
   if (!user) {
     return <Auth />;
+  }
+
+  if (!onboardingFait) {
+    return <OnboardingScreen onTermine={() => setOnboardingFait(true)} />;
   }
 
   return (
