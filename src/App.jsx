@@ -6,6 +6,7 @@ import Home from './screens/Home';
 import PlaceholderScreen from './screens/PlaceholderScreen';
 import PartenairesScreen from './screens/PartenairesScreen';
 import ReserverScreen from './screens/ReserverScreen';
+import MessagesScreen from './screens/MessagesScreen';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -18,22 +19,20 @@ export default function App() {
     );
   }
 
-  // Pas connecté → écran d'auth
   if (!user) {
     return <Auth />;
   }
 
-  // Connecté → l'app
   return (
     <div className="mx-auto bg-tplus-cream min-h-screen relative" style={{ maxWidth: '430px' }}>
       <Routes>
         <Route path="/" element={<Home />} />
-       <Route path="/partners" element={<PartenairesScreen />} />
-<Route path="/courts" element={<ReserverScreen />} />
-        <Route path="/tournaments" element={<PlaceholderScreen title="TOURNOIS" description="Liste des tournois avec inscription. Tables : tournaments + tournament_registrations." />} />
-        <Route path="/talk" element={<PlaceholderScreen title="MESSAGES" description="Liste des conversations + chat 1-1. Tables : conversations + messages. Utiliser Supabase Realtime pour le live." />} />
-        <Route path="/profile" element={<PlaceholderScreen title="PROFIL" description="Stats, badges, derniers matchs. Table : users + matches." />} />
-        <Route path="/agenda" element={<PlaceholderScreen title="AGENDA" description="Tous les événements à venir : matchs, réservations, tournois." />} />
+        <Route path="/partners" element={<PartenairesScreen />} />
+        <Route path="/courts" element={<ReserverScreen />} />
+        <Route path="/talk" element={<MessagesScreen />} />
+        <Route path="/tournaments" element={<PlaceholderScreen title="TOURNOIS" description="Liste des tournois." />} />
+        <Route path="/profile" element={<PlaceholderScreen title="PROFIL" description="Profil, badges." />} />
+        <Route path="/agenda" element={<PlaceholderScreen title="AGENDA" description="Tes events." />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <BottomNav />
