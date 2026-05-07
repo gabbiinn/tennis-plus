@@ -7,6 +7,7 @@ import PlaceholderScreen from './screens/PlaceholderScreen';
 import PartenairesScreen from './screens/PartenairesScreen';
 import ReserverScreen from './screens/ReserverScreen';
 import MessagesScreen from './screens/MessagesScreen';
+import TournoisScreen from './screens/TournoisScreen';
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -30,7 +31,7 @@ export default function App() {
         <Route path="/partners" element={<PartenairesScreen />} />
         <Route path="/courts" element={<ReserverScreen />} />
         <Route path="/talk" element={<MessagesScreen />} />
-        <Route path="/tournaments" element={<PlaceholderScreen title="TOURNOIS" description="Liste des tournois." />} />
+        <Route path="/tournaments" element={<TournoisScreen />} />
         <Route path="/profile" element={<PlaceholderScreen title="PROFIL" description="Profil, badges." />} />
         <Route path="/agenda" element={<PlaceholderScreen title="AGENDA" description="Tes events." />} />
         <Route path="*" element={<Navigate to="/" />} />
