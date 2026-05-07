@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Camera, Edit2, LogOut, Trophy, Users, Calendar, Star, ChevronRight, Check, X } from "lucide-react";
+import { Camera, Edit2, LogOut, Trophy, Check, X } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 const BADGES = [
   { id: 1, emoji: "🎾", nom: "Premier match", desc: "Tu as joué ton 1er match", obtenu: true },
@@ -18,9 +19,9 @@ const MATCHS_PASSES = [
   { id: 5, adversaire: "Pierre L.", date: "5 avr. 2026", score: "5-7 6-4 8-10", victoire: false, tournoi: false },
 ];
 
-const SERIES = ["4/6", "15/1", "15/2", "15/3", "15", "30", "30/1", "30/2", "30/3", "30/4", "40"];
-const DISPOS = ["Matin semaine", "Soir semaine", "Week-end matin", "Week-end après-midi", "Flexible"];
-const SECTEURS = ["Centre / Thabor", "Nord Rennes", "Sud Rennes", "Est / Cesson", "Ouest / Villejean"];
+const SERIES = ["NC","40","30/4","30/3","30/2","30/1","30","15/5","15/4","15/3","15/2","15/1","15","5/6","4/6","3/6","2/6","1/6","0","-2/6","-4/6","-15","-30"];
+const DISPOS = ["Matin semaine","Soir semaine","Week-end matin","Week-end après-midi","Flexible"];
+const SECTEURS = ["Rennes Centre","Rennes Nord","Rennes Sud","Rennes Est","Rennes Ouest","Saint-Grégoire","Cesson-Sévigné","Thorigné-Fouillard","Chantepie","Saint-Jacques-de-la-Lande","Bruz","Chartres-de-Bretagne","Pacé","Mordelles","Betton","Acigné","Noyal-sur-Vilaine","Liffré","Vern-sur-Seiche","Chateaubourg","Janzé","Bain-de-Bretagne","Guichen","Laillé","Gévezé","La Mézière","Melesse","Servon-sur-Vilaine","Noyal-Châtillon"];
 
 export default function ProfilScreen() {
   const [editMode, setEditMode] = useState(false);
@@ -45,13 +46,15 @@ export default function ProfilScreen() {
     setEditMode(false);
   };
 
+  const deconnecter = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header profil */}
       <div className="bg-white px-4 pt-6 pb-4 border-b border-gray-100">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-4">
-            {/* Avatar */}
             <div className="relative">
               <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black"
                 style={{ backgroundColor: "#1E5FAF" }}>
@@ -64,8 +67,7 @@ export default function ProfilScreen() {
             <div>
               <h2 className="text-xl font-black" style={{ fontFamily: "Archivo Black, sans-serif" }}>{profil.nom}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm px-2 py-0.5 rounded-full font-bold"
-                  style={{ backgroundColor: "#EFF6FF", color: "#1E5FAF" }}>{profil.serie}</span>
+                <span className="text-sm px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: "#EFF6FF", color: "#1E5FAF" }}>{profil.serie}</span>
                 <span className="text-sm text-gray-400">{profil.club}</span>
               </div>
               <p className="text-xs text-gray-400 mt-1">🕐 {profil.dispo} · 📍 {profil.secteur}</p>
@@ -76,8 +78,6 @@ export default function ProfilScreen() {
             <Edit2 size={16} style={{ color: "#1E5FAF" }} />
           </button>
         </div>
-
-        {/* Stats rapides */}
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: "Matchs", value: total, couleur: "#1E5FAF" },
@@ -90,8 +90,6 @@ export default function ProfilScreen() {
             </div>
           ))}
         </div>
-
-        {/* Barre win rate */}
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-400 mb-1">
             <span>Win rate</span>
@@ -103,7 +101,6 @@ export default function ProfilScreen() {
         </div>
       </div>
 
-      {/* Onglets */}
       <div className="bg-white border-b border-gray-100 px-4 py-2 sticky top-0 z-10">
         <div className="flex gap-1">
           {[
@@ -121,7 +118,6 @@ export default function ProfilScreen() {
       </div>
 
       <div className="px-4 mt-4 pb-24">
-        {/* Matchs passés */}
         {onglet === "stats" && (
           <div className="flex flex-col gap-2">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Historique des matchs</p>
@@ -135,15 +131,12 @@ export default function ProfilScreen() {
                   <p className="font-bold text-sm">vs {m.adversaire}</p>
                   <p className="text-xs text-gray-400">{m.date} {m.tournoi && "· 🏆 Tournoi"}</p>
                 </div>
-                <span className="font-bold text-sm" style={{ color: m.victoire ? "#166534" : "#DC2626" }}>
-                  {m.score}
-                </span>
+                <span className="font-bold text-sm" style={{ color: m.victoire ? "#166534" : "#DC2626" }}>{m.score}</span>
               </div>
             ))}
           </div>
         )}
 
-        {/* Badges */}
         {onglet === "badges" && (
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
@@ -166,7 +159,6 @@ export default function ProfilScreen() {
           </div>
         )}
 
-        {/* Tournois joués */}
         {onglet === "tournois" && (
           <div className="flex flex-col gap-3">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Mes tournois</p>
@@ -191,13 +183,12 @@ export default function ProfilScreen() {
           </div>
         )}
 
-        {/* Déconnexion */}
-        <button className="w-full mt-6 py-3 rounded-2xl border border-red-200 text-red-500 font-bold text-sm flex items-center justify-center gap-2">
+        <button onClick={deconnecter}
+          className="w-full mt-6 py-3 rounded-2xl border border-red-200 text-red-500 font-bold text-sm flex items-center justify-center gap-2">
           <LogOut size={16} /> Se déconnecter
         </button>
       </div>
 
-      {/* Modal édition */}
       {editMode && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
           <div className="bg-white w-full rounded-t-3xl px-4 pt-6 pb-10" style={{ maxWidth: "430px", margin: "0 auto" }}>

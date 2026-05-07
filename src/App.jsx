@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { supabase } from './lib/supabase';
 import BottomNav from './components/BottomNav';
 import Auth from './screens/Auth';
 import Home from './screens/Home';
@@ -14,9 +15,18 @@ import OnboardingScreen from './screens/OnboardingScreen';
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [onboardingFait, setOnboardingFait] = useState(false);
+  const [profilExiste, setProfilExiste] = useState(null);
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) return;
+    const verifierProfil = async () => {
+      const { data } = await supabase.from("profils").select("id").eq("id", user.id).single();
+      setProfilExiste(!!data);
+    };
+    verifierProfil();
+  }, [user]);
+
+  if (loading || (user && profilExiste === null)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-tplus-cream">
         <div className="font-display text-xl">CHARGEMENT...</div>
@@ -24,12 +34,10 @@ export default function App() {
     );
   }
 
-  if (!user) {
-    return <Auth />;
-  }
+  if (!user) return <Auth />;
 
-  if (!onboardingFait) {
-    return <OnboardingScreen onTermine={() => setOnboardingFait(true)} />;
+  if (!profilExiste) {
+    return <OnboardingScreen user={user} onTermine={() => setProfilExiste(true)} />;
   }
 
   return (

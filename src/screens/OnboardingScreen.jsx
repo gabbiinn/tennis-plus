@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronRight, Check } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 const SLIDES = [
   { emoji: "🎾", titre: "Bienvenue sur TENNIS+", desc: "L'app qui connecte les joueurs de tennis à Rennes. Trouve des partenaires, réserve des courts, rejoins des tournois amicaux.", couleur: "#1E5FAF" },
@@ -8,15 +9,16 @@ const SLIDES = [
   { emoji: "🏆", titre: "Rejoins des tournois amicaux", desc: "Des tournois organisés par et pour les joueurs. Sans prise de tête, juste pour le plaisir du jeu.", couleur: "#1E5FAF" },
 ];
 
-const CLASSEMENTS = ["NC", "40", "30/4", "30/3", "30/2", "30/1", "30", "15/5", "15/4", "15/3", "15/2", "15/1", "15", "5/6", "4/6", "3/6", "2/6", "1/6", "0", "-2/6", "-4/6", "-15", "-30"];
-const DISPOS = ["Matin semaine", "Soir semaine", "Week-end matin", "Week-end après-midi", "Flexible"];
-const SECTEURS = ["Rennes Centre", "Rennes Nord", "Rennes Sud", "Rennes Est", "Rennes Ouest", "Saint-Grégoire", "Cesson-Sévigné", "Thorigné-Fouillard", "Chantepie", "Saint-Jacques-de-la-Lande", "Bruz", "Chartres-de-Bretagne", "Pacé", "Mordelles", "Betton", "Acigné", "Noyal-sur-Vilaine", "Liffré", "Vern-sur-Seiche", "Chateaubourg", "Janzé", "Bain-de-Bretagne", "Guichen", "Laillé", "Gévezé", "La Mézière", "Melesse", "Servon-sur-Vilaine", "Noyal-Châtillon"];
-const CLUBS = ["TC Saint-Grégoire", "TC Cesson-Sévigné", "TC Bruz", "TC Betton", "TC Pacé", "TC Chartres-de-Bretagne", "TC Mordelles", "TC Thorigné-Fouillard", "TC Chantepie", "TC Saint-Jacques-de-la-Lande", "TC Acigné", "TC Noyal-sur-Vilaine", "TC Liffré", "TC Bois Orcan", "TC La Flume", "TC Laillé", "TC Bain-de-Bretagne", "TC Vern-sur-Seiche", "TC Noyal-Châtillon", "TC Guichen", "TC Chateaubourg", "TC Servon-sur-Vilaine", "TC Gévezé", "TC La Mézière", "TC Melesse", "TC Janzé", "Sans club", "Je joue en loisir"];
-const ANNEES = ["Moins d'1 an", "1-2 ans", "3-5 ans", "6-10 ans", "Plus de 10 ans"];
+const CLASSEMENTS = ["NC","40","30/4","30/3","30/2","30/1","30","15/5","15/4","15/3","15/2","15/1","15","5/6","4/6","3/6","2/6","1/6","0","-2/6","-4/6","-15","-30"];
+const DISPOS = ["Matin semaine","Soir semaine","Week-end matin","Week-end après-midi","Flexible"];
+const SECTEURS = ["Rennes Centre","Rennes Nord","Rennes Sud","Rennes Est","Rennes Ouest","Saint-Grégoire","Cesson-Sévigné","Thorigné-Fouillard","Chantepie","Saint-Jacques-de-la-Lande","Bruz","Chartres-de-Bretagne","Pacé","Mordelles","Betton","Acigné","Noyal-sur-Vilaine","Liffré","Vern-sur-Seiche","Chateaubourg","Janzé","Bain-de-Bretagne","Guichen","Laillé","Gévezé","La Mézière","Melesse","Servon-sur-Vilaine","Noyal-Châtillon"];
+const CLUBS = ["TC Saint-Grégoire","TC Cesson-Sévigné","TC Bruz","TC Betton","TC Pacé","TC Chartres-de-Bretagne","TC Mordelles","TC Thorigné-Fouillard","TC Chantepie","TC Saint-Jacques-de-la-Lande","TC Acigné","TC Noyal-sur-Vilaine","TC Liffré","TC Bois Orcan","TC La Flume","TC Laillé","TC Bain-de-Bretagne","TC Vern-sur-Seiche","TC Noyal-Châtillon","TC Guichen","TC Chateaubourg","TC Servon-sur-Vilaine","TC Gévezé","TC La Mézière","TC Melesse","TC Janzé","Sans club","Je joue en loisir"];
+const ANNEES = ["Moins d'1 an","1-2 ans","3-5 ans","6-10 ans","Plus de 10 ans"];
 
-export default function OnboardingScreen({ onTermine }) {
+export default function OnboardingScreen({ onTermine, user }) {
   const [slide, setSlide] = useState(0);
   const [etape, setEtape] = useState("slides");
+  const [loading, setLoading] = useState(false);
   const [profil, setProfil] = useState({ sexe: "", serie: "", anneesTennis: "", dispos: [], secteurs: [], club: "" });
 
   const currentSlide = SLIDES[slide];
@@ -35,6 +37,30 @@ export default function OnboardingScreen({ onTermine }) {
   };
 
   const peutTerminer = profil.sexe && profil.serie && profil.secteurs.length > 0 && profil.club && profil.anneesTennis;
+
+  const sauvegarderEtTerminer = async () => {
+    if (!peutTerminer) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("profils").insert({
+        id: user.id,
+        nom: user.email.split("@")[0],
+        sexe: profil.sexe,
+        serie: profil.serie,
+        annees_tennis: profil.anneesTennis,
+        dispos: profil.dispos,
+        secteurs: profil.secteurs,
+        club: profil.club,
+      });
+      if (error) throw error;
+      onTermine();
+    } catch (err) {
+      console.error("Erreur:", err);
+      onTermine();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (etape === "slides") {
     return (
@@ -73,10 +99,7 @@ export default function OnboardingScreen({ onTermine }) {
         </div>
         <p className="text-sm text-gray-400">2 minutes pour bien démarrer 🎾</p>
       </div>
-
       <div className="px-4 py-5 pb-32 flex flex-col gap-6">
-
-        {/* Sexe */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-3">Je suis <span className="text-red-400">*</span></p>
           <div className="flex gap-3">
@@ -89,8 +112,6 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Classement */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-1">Mon classement FFT <span className="text-red-400">*</span></p>
           <p className="text-xs text-gray-400 mb-3">Du plus faible au plus fort</p>
@@ -104,8 +125,6 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Années tennis */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-3">Depuis combien de temps joues-tu ? <span className="text-red-400">*</span></p>
           <div className="flex gap-2 flex-wrap">
@@ -118,8 +137,6 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Disponibilités */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-1">Mes disponibilités</p>
           <p className="text-xs text-gray-400 mb-3">Plusieurs choix possibles</p>
@@ -133,8 +150,6 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Secteurs */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-1">Mon secteur <span className="text-red-400">*</span></p>
           <p className="text-xs text-gray-400 mb-3">Plusieurs choix possibles</p>
@@ -148,8 +163,6 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Club */}
         <div>
           <p className="text-sm font-bold text-gray-700 mb-3">Mon club <span className="text-red-400">*</span></p>
           <div className="flex gap-2 flex-wrap">
@@ -162,14 +175,11 @@ export default function OnboardingScreen({ onTermine }) {
             ))}
           </div>
         </div>
-
-        {/* Bouton terminer */}
-        <button onClick={onTermine} disabled={!peutTerminer}
+        <button onClick={sauvegarderEtTerminer} disabled={!peutTerminer || loading}
           className="w-full py-4 rounded-2xl font-black text-lg transition-all"
           style={{ backgroundColor: peutTerminer ? "#1E5FAF" : "#E5E7EB", color: peutTerminer ? "white" : "#9CA3AF" }}>
-          {peutTerminer ? "C'est parti ! 🎾" : "Remplis les champs obligatoires *"}
+          {loading ? "Sauvegarde..." : peutTerminer ? "C'est parti ! 🎾" : "Remplis les champs obligatoires *"}
         </button>
-
       </div>
     </div>
   );
