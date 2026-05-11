@@ -1,17 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, X, Send, Users, ChevronRight, Clock } from "lucide-react";
 import { couleurSaison } from "../App";
-
-const DEMANDES = [
-  { id: 1, nom: "Thomas R.", serie: "15/1", avatar: "TR", message: "Dispo samedi matin pour un match ?", heure: "Il y a 10 min" },
-  { id: 2, nom: "Maxime L.", serie: "4/6", avatar: "ML", message: "Partie en semaine possible ?", heure: "Il y a 1h" },
-];
-
-const CONVERSATIONS = [
-  { id: 1, nom: "Sophie M.", serie: "15", avatar: "SM", dernier: "Ok super, à samedi alors !", heure: "14:32", nonLu: 2 },
-  { id: 2, nom: "Lucas B.", serie: "15/2", avatar: "LB", dernier: "Tu joues où d'habitude ?", heure: "Hier", nonLu: 0 },
-  { id: 3, nom: "Camille D.", serie: "30", avatar: "CD", dernier: "Merci pour le match 🎾", heure: "Lun.", nonLu: 0 },
-];
+import { supabase } from "../lib/supabase";
 
 const GROUPES = [
   { id: 1, nom: "15/1 — 15/2 Rennes Centre", membres: 12, dernier: "Quelqu'un dispo dimanche ?", heure: "11:20", nonLu: 5 },
@@ -22,23 +12,58 @@ const GROUPES = [
 
 const HORAIRES = ["Lundi 18h", "Mardi 19h", "Mercredi 18h", "Samedi 9h", "Samedi 11h", "Dimanche 10h"];
 
-function ConversationView({ contact, onClose }) {
+function ConversationView({ contact, currentUser, onClose }) {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    { id: 1, moi: false, texte: contact.dernier || "Salut !", heure: "14:30" },
-    { id: 2, moi: true, texte: "Salut ! Tu es dispo quand ?", heure: "14:31" },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [showHoraires, setShowHoraires] = useState(false);
+  const bottomRef = useRef(null);
 
-  const envoyer = () => {
-    if (!message.trim()) return;
-    setMessages([...messages, { id: Date.now(), moi: true, texte: message, heure: "maintenant" }]);
-    setMessage("");
+  useEffect(() => {
+    chargerMessages();
+    const channel = supabase
+      .channel("messages-" + contact.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new;
+        if ((m.expediteur_id === currentUser.id && m.destinataire_id === contact.id) ||
+            (m.expediteur_id === contact.id && m.destinataire_id === currentUser.id)) {
+          setMessages((prev) => [...prev, m]);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [contact.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const chargerMessages = async () => {
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .or(`and(expediteur_id.eq.${currentUser.id},destinataire_id.eq.${contact.id}),and(expediteur_id.eq.${contact.id},destinataire_id.eq.${currentUser.id})`)
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data);
   };
 
-  const proposerHoraire = (h) => {
-    setMessages([...messages, { id: Date.now(), moi: true, texte: `📅 Je propose : ${h}`, heure: "maintenant" }]);
+  const envoyer = async () => {
+    if (!message.trim()) return;
+    const texte = message;
+    setMessage("");
+    await supabase.from("messages").insert({
+      expediteur_id: currentUser.id,
+      destinataire_id: contact.id,
+      contenu: texte,
+    });
+  };
+
+  const proposerHoraire = async (h) => {
     setShowHoraires(false);
+    await supabase.from("messages").insert({
+      expediteur_id: currentUser.id,
+      destinataire_id: contact.id,
+      contenu: `📅 Je propose : ${h}`,
+    });
   };
 
   return (
@@ -46,22 +71,33 @@ function ConversationView({ contact, onClose }) {
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 bg-white">
         <button onClick={onClose} className="text-gray-400 font-bold text-lg">←</button>
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-          style={{ backgroundColor: couleurSaison }}>{contact.avatar}</div>
+          style={{ backgroundColor: couleurSaison }}>
+          {contact.nom?.[0] || "?"}
+        </div>
         <div>
           <p className="font-bold text-sm">{contact.nom}</p>
           <p className="text-xs text-gray-400">{contact.serie}</p>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3 bg-gray-50">
+        {messages.length === 0 && (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-3xl mb-2">🎾</p>
+            <p className="text-sm">Commence la conversation !</p>
+          </div>
+        )}
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.moi ? "justify-end" : "justify-start"}`}>
+          <div key={m.id} className={`flex ${m.expediteur_id === currentUser.id ? "justify-end" : "justify-start"}`}>
             <div className="max-w-xs px-4 py-2 rounded-2xl text-sm"
-              style={{ backgroundColor: m.moi ? couleurSaison : "white", color: m.moi ? "white" : "#111", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              {m.texte}
-              <p className="text-xs mt-1 opacity-60">{m.heure}</p>
+              style={{ backgroundColor: m.expediteur_id === currentUser.id ? couleurSaison : "white", color: m.expediteur_id === currentUser.id ? "white" : "#111", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              {m.contenu}
+              <p className="text-xs mt-1 opacity-60">
+                {new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
             </div>
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
       {showHoraires && (
         <div className="px-4 py-3 border-t border-gray-100 bg-white">
@@ -98,14 +134,42 @@ function ConversationView({ contact, onClose }) {
 }
 
 export default function MessagesScreen() {
-  const [demandes, setDemandes] = useState(DEMANDES);
   const [convActive, setConvActive] = useState(null);
   const [onglet, setOnglet] = useState("messages");
+  const [conversations, setConversations] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const accepter = (id) => setDemandes(demandes.filter((d) => d.id !== id));
-  const refuser = (id) => setDemandes(demandes.filter((d) => d.id !== id));
+  useEffect(() => {
+    const charger = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      if (!user) return;
 
-  if (convActive) return <ConversationView contact={convActive} onClose={() => setConvActive(null)} />;
+      const { data } = await supabase
+        .from("messages")
+        .select("*, expediteur:profils!messages_expediteur_id_fkey(id, nom, serie), destinataire:profils!messages_destinataire_id_fkey(id, nom, serie)")
+        .or(`expediteur_id.eq.${user.id},destinataire_id.eq.${user.id}`)
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        const convMap = {};
+        data.forEach((m) => {
+          const autre = m.expediteur_id === user.id ? m.destinataire : m.expediteur;
+          if (autre && !convMap[autre.id]) {
+            convMap[autre.id] = { ...autre, dernier: m.contenu, heure: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) };
+          }
+        });
+        setConversations(Object.values(convMap));
+      }
+      setLoading(false);
+    };
+    charger();
+  }, []);
+
+  if (convActive && currentUser) {
+    return <ConversationView contact={convActive} currentUser={currentUser} onClose={() => setConvActive(null)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,68 +188,40 @@ export default function MessagesScreen() {
 
       {onglet === "messages" && (
         <div className="pb-24">
-          {demandes.length > 0 && (
-            <div className="px-4 mt-4">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Demandes de match ({demandes.length})</p>
-              <div className="flex flex-col gap-2">
-                {demandes.map((d) => (
-                  <div key={d.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                        style={{ backgroundColor: couleurSaison }}>{d.avatar}</div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm">{d.nom}</p>
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                            style={{ backgroundColor: couleurSaison + "20", color: couleurSaison }}>{d.serie}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{d.message}</p>
-                        <p className="text-xs text-gray-400">{d.heure}</p>
+          <div className="px-4 mt-4">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Conversations</p>
+            {loading ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center text-gray-400 text-sm">
+                Chargement...
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                <p className="text-3xl mb-2">💬</p>
+                <p className="font-bold text-gray-500">Pas encore de messages</p>
+                <p className="text-sm text-gray-400 mt-1">Va sur Partenaires et clique "Jouer" !</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {conversations.map((conv, i) => (
+                  <div key={conv.id} onClick={() => setConvActive(conv)}
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-all"
+                    style={{ borderBottom: i < conversations.length - 1 ? "1px solid #F3F4F6" : "none" }}>
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold"
+                      style={{ backgroundColor: couleurSaison }}>
+                      {conv.nom?.[0] || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-sm">{conv.nom}</p>
+                        <p className="text-xs text-gray-400">{conv.heure}</p>
                       </div>
+                      <p className="text-xs text-gray-500 truncate">{conv.dernier}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => refuser(d.id)}
-                        className="flex-1 py-2 rounded-xl text-sm font-bold border border-gray-200 text-gray-500 flex items-center justify-center gap-1">
-                        <X size={14} /> Refuser
-                      </button>
-                      <button onClick={() => accepter(d.id)}
-                        className="flex-1 py-2 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-1"
-                        style={{ backgroundColor: couleurSaison }}>
-                        <Check size={14} /> Accepter
-                      </button>
-                    </div>
+                    <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-          <div className="px-4 mt-4">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Conversations</p>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              {CONVERSATIONS.map((conv, i) => (
-                <div key={conv.id} onClick={() => setConvActive(conv)}
-                  className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-all"
-                  style={{ borderBottom: i < CONVERSATIONS.length - 1 ? "1px solid #F3F4F6" : "none" }}>
-                  <div className="relative">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold"
-                      style={{ backgroundColor: couleurSaison }}>{conv.avatar}</div>
-                    {conv.nonLu > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">
-                        {conv.nonLu}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <p className="font-bold text-sm">{conv.nom}</p>
-                      <p className="text-xs text-gray-400">{conv.heure}</p>
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">{conv.dernier}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-gray-300 flex-shrink-0" />
-                </div>
-              ))}
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -196,7 +232,6 @@ export default function MessagesScreen() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             {GROUPES.map((g, i) => (
               <div key={g.id}
-                onClick={() => setConvActive({ ...g, avatar: g.nom[0] + g.nom[1], serie: `${g.membres} membres`, dernier: g.dernier })}
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-all"
                 style={{ borderBottom: i < GROUPES.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                 <div className="relative">
