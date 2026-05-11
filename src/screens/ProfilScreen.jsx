@@ -211,4 +211,22 @@ export default function ProfilScreen() {
                 <div className="flex gap-2 flex-wrap">
                   {SECTEURS.map((s) => (
                     <button key={s} onClick={() => setProfilTemp({ ...profilTemp, secteur: s })}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium transitio
+                      className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
+                      style={{ backgroundColor: profilTemp.secteur === s ? couleurSaison : "#F3F4F6", color: profilTemp.secteur === s ? "white" : "#374151" }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={sauvegarder}
+                className="w-full py-3 rounded-2xl text-white font-bold mt-2"
+                style={{ backgroundColor: couleurSaison }}>
+                Sauvegarder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
