@@ -1,0 +1,21 @@
+{
+  "name": "TENNIS+",
+  "short_name": "TENNIS+",
+  "description": "Tout le tennis, en plus.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1E5FAF",
+  "theme_color": "#1E5FAF",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
