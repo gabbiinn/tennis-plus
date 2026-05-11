@@ -4,8 +4,8 @@
   "description": "Tout le tennis, en plus.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1E5FAF",
-  "theme_color": "#1E5FAF",
+  "background_color": "#C75D3F",
+  "theme_color": "#C75D3F",
   "icons": [
     {
       "src": "/icons/icon-192.png",
