@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Camera, Edit2, LogOut, Trophy, Check, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
+import { couleurSaison } from "../App";
 
 const BADGES = [
   { id: 1, emoji: "🎾", nom: "Premier match", desc: "Tu as joué ton 1er match", obtenu: true },
@@ -26,14 +27,7 @@ const SECTEURS = ["Rennes Centre","Rennes Nord","Rennes Sud","Rennes Est","Renne
 export default function ProfilScreen() {
   const [editMode, setEditMode] = useState(false);
   const [onglet, setOnglet] = useState("stats");
-  const [profil, setProfil] = useState({
-    nom: "Gabin Island",
-    serie: "15/2",
-    club: "TC Rennes",
-    dispo: "Week-end matin",
-    secteur: "Centre / Thabor",
-    initiales: "GI",
-  });
+  const [profil, setProfil] = useState({ nom: "Gabin Island", serie: "15/2", club: "TC Rennes", dispo: "Week-end matin", secteur: "Centre / Thabor", initiales: "GI" });
   const [profilTemp, setProfilTemp] = useState(profil);
 
   const victoires = MATCHS_PASSES.filter((m) => m.victoire).length;
@@ -41,14 +35,8 @@ export default function ProfilScreen() {
   const total = MATCHS_PASSES.length;
   const pct = Math.round((victoires / total) * 100);
 
-  const sauvegarder = () => {
-    setProfil(profilTemp);
-    setEditMode(false);
-  };
-
-  const deconnecter = async () => {
-    await supabase.auth.signOut();
-  };
+  const sauvegarder = () => { setProfil(profilTemp); setEditMode(false); };
+  const deconnecter = async () => { await supabase.auth.signOut(); };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -57,17 +45,18 @@ export default function ProfilScreen() {
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black"
-                style={{ backgroundColor: "#1E5FAF" }}>
+                style={{ backgroundColor: couleurSaison }}>
                 {profil.initiales}
               </div>
               <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center shadow-sm">
-                <Camera size={12} style={{ color: "#1E5FAF" }} />
+                <Camera size={12} style={{ color: couleurSaison }} />
               </button>
             </div>
             <div>
               <h2 className="text-xl font-black" style={{ fontFamily: "Archivo Black, sans-serif" }}>{profil.nom}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm px-2 py-0.5 rounded-full font-bold" style={{ backgroundColor: "#EFF6FF", color: "#1E5FAF" }}>{profil.serie}</span>
+                <span className="text-sm px-2 py-0.5 rounded-full font-bold"
+                  style={{ backgroundColor: couleurSaison + "20", color: couleurSaison }}>{profil.serie}</span>
                 <span className="text-sm text-gray-400">{profil.club}</span>
               </div>
               <p className="text-xs text-gray-400 mt-1">🕐 {profil.dispo} · 📍 {profil.secteur}</p>
@@ -75,12 +64,12 @@ export default function ProfilScreen() {
           </div>
           <button onClick={() => { setEditMode(true); setProfilTemp(profil); }}
             className="p-2 rounded-xl border border-gray-200">
-            <Edit2 size={16} style={{ color: "#1E5FAF" }} />
+            <Edit2 size={16} style={{ color: couleurSaison }} />
           </button>
         </div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Matchs", value: total, couleur: "#1E5FAF" },
+            { label: "Matchs", value: total, couleur: couleurSaison },
             { label: "Victoires", value: victoires, couleur: "#2D5016" },
             { label: "Défaites", value: defaites, couleur: "#C75D3F" },
           ].map((s) => (
@@ -103,14 +92,10 @@ export default function ProfilScreen() {
 
       <div className="bg-white border-b border-gray-100 px-4 py-2 sticky top-0 z-10">
         <div className="flex gap-1">
-          {[
-            { id: "stats", label: "📊 Matchs" },
-            { id: "badges", label: "🏅 Badges" },
-            { id: "tournois", label: "🏆 Tournois" },
-          ].map((o) => (
+          {[{ id: "stats", label: "📊 Matchs" }, { id: "badges", label: "🏅 Badges" }, { id: "tournois", label: "🏆 Tournois" }].map((o) => (
             <button key={o.id} onClick={() => setOnglet(o.id)}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
-              style={{ backgroundColor: onglet === o.id ? "#1E5FAF" : "#F3F4F6", color: onglet === o.id ? "white" : "#6B7280" }}>
+              style={{ backgroundColor: onglet === o.id ? couleurSaison : "#F3F4F6", color: onglet === o.id ? "white" : "#6B7280" }}>
               {o.label}
             </button>
           ))}
@@ -145,13 +130,13 @@ export default function ProfilScreen() {
             <div className="grid grid-cols-2 gap-3">
               {BADGES.map((b) => (
                 <div key={b.id} className="bg-white rounded-2xl p-4 border text-center"
-                  style={{ borderColor: b.obtenu ? "#1E5FAF" : "#F3F4F6", opacity: b.obtenu ? 1 : 0.5 }}>
+                  style={{ borderColor: b.obtenu ? couleurSaison : "#F3F4F6", opacity: b.obtenu ? 1 : 0.5 }}>
                   <div className="text-3xl mb-2">{b.emoji}</div>
                   <p className="font-bold text-sm">{b.nom}</p>
                   <p className="text-xs text-gray-400 mt-1">{b.desc}</p>
                   {b.obtenu && (
                     <span className="text-xs font-bold mt-2 inline-block px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: "#EFF6FF", color: "#1E5FAF" }}>Obtenu ✓</span>
+                      style={{ backgroundColor: couleurSaison + "20", color: couleurSaison }}>Obtenu ✓</span>
                   )}
                 </div>
               ))}
@@ -163,8 +148,8 @@ export default function ProfilScreen() {
           <div className="flex flex-col gap-3">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Mes tournois</p>
             <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#EFF6FF" }}>
-                <Trophy size={18} style={{ color: "#1E5FAF" }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: couleurSaison + "20" }}>
+                <Trophy size={18} style={{ color: couleurSaison }} />
               </div>
               <div className="flex-1">
                 <p className="font-bold text-sm">Open Amical Thabor</p>
@@ -172,8 +157,8 @@ export default function ProfilScreen() {
               </div>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FEF3C7" }}>
-                <Trophy size={18} style={{ color: "#C75D3F" }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: couleurSaison + "20" }}>
+                <Trophy size={18} style={{ color: couleurSaison }} />
               </div>
               <div className="flex-1">
                 <p className="font-bold text-sm">Cup Gayeulles Été</p>
@@ -203,7 +188,7 @@ export default function ProfilScreen() {
                   {SERIES.map((s) => (
                     <button key={s} onClick={() => setProfilTemp({ ...profilTemp, serie: s })}
                       className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-                      style={{ backgroundColor: profilTemp.serie === s ? "#1E5FAF" : "#F3F4F6", color: profilTemp.serie === s ? "white" : "#374151" }}>
+                      style={{ backgroundColor: profilTemp.serie === s ? couleurSaison : "#F3F4F6", color: profilTemp.serie === s ? "white" : "#374151" }}>
                       {s}
                     </button>
                   ))}
@@ -215,7 +200,7 @@ export default function ProfilScreen() {
                   {DISPOS.map((d) => (
                     <button key={d} onClick={() => setProfilTemp({ ...profilTemp, dispo: d })}
                       className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-                      style={{ backgroundColor: profilTemp.dispo === d ? "#1E5FAF" : "#F3F4F6", color: profilTemp.dispo === d ? "white" : "#374151" }}>
+                      style={{ backgroundColor: profilTemp.dispo === d ? couleurSaison : "#F3F4F6", color: profilTemp.dispo === d ? "white" : "#374151" }}>
                       {d}
                     </button>
                   ))}
@@ -226,22 +211,4 @@ export default function ProfilScreen() {
                 <div className="flex gap-2 flex-wrap">
                   {SECTEURS.map((s) => (
                     <button key={s} onClick={() => setProfilTemp({ ...profilTemp, secteur: s })}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-                      style={{ backgroundColor: profilTemp.secteur === s ? "#1E5FAF" : "#F3F4F6", color: profilTemp.secteur === s ? "white" : "#374151" }}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button onClick={sauvegarder}
-                className="w-full py-3 rounded-2xl text-white font-bold mt-2"
-                style={{ backgroundColor: "#1E5FAF" }}>
-                Sauvegarder
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      className="px-3 py-1.5 rounded-full text-sm font-medium transitio

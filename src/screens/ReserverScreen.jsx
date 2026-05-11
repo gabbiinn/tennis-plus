@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { MapPin, Clock, Lock, Unlock } from "lucide-react";
+import { couleurSaison } from "../App";
 
 const COURTS = [
-  { id: 1, nom: "TC Rennes", type: "club", adresse: "2 rue de la Racquette, Rennes", distance: "0.8 km", surfaces: ["Dur", "Terre"], prix: "8€/h", adherents: true, creneaux: ["09:00", "10:30", "14:00", "17:30"], couleur: "#1E5FAF" },
-  { id: 2, nom: "Rennes Ill. Tennis", type: "club", adresse: "15 av. des Sports, Rennes", distance: "1.4 km", surfaces: ["Terre"], prix: "10€/h", adherents: true, creneaux: ["08:00", "11:00", "15:00", "18:00"], couleur: "#1E5FAF" },
-  { id: 3, nom: "Courts Thabor", type: "municipal", adresse: "Parc du Thabor, Rennes", distance: "1.1 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"], couleur: "#2D5016" },
-  { id: 4, nom: "TC Cesson-Sévigné", type: "club", adresse: "8 rue du Stade, Cesson", distance: "3.2 km", surfaces: ["Dur", "Gazon"], prix: "12€/h", adherents: true, creneaux: ["09:30", "11:00", "14:30", "16:00", "19:00"], couleur: "#1E5FAF" },
-  { id: 5, nom: "Courts Gayeulles", type: "municipal", adresse: "Parc des Gayeulles, Rennes", distance: "2.3 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"], couleur: "#2D5016" },
-  { id: 6, nom: "Tennis Club Villejean", type: "club", adresse: "3 rue Villejean, Rennes", distance: "2.9 km", surfaces: ["Terre"], prix: "7€/h", adherents: false, creneaux: ["10:00", "13:00", "16:00", "18:30"], couleur: "#C75D3F" },
+  { id: 1, nom: "TC Rennes", type: "club", adresse: "2 rue de la Racquette, Rennes", distance: "0.8 km", surfaces: ["Dur", "Terre"], prix: "8€/h", adherents: true, creneaux: ["09:00", "10:30", "14:00", "17:30"] },
+  { id: 2, nom: "Rennes Ill. Tennis", type: "club", adresse: "15 av. des Sports, Rennes", distance: "1.4 km", surfaces: ["Terre"], prix: "10€/h", adherents: true, creneaux: ["08:00", "11:00", "15:00", "18:00"] },
+  { id: 3, nom: "Courts Thabor", type: "municipal", adresse: "Parc du Thabor, Rennes", distance: "1.1 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"] },
+  { id: 4, nom: "TC Cesson-Sévigné", type: "club", adresse: "8 rue du Stade, Cesson", distance: "3.2 km", surfaces: ["Dur", "Gazon"], prix: "12€/h", adherents: true, creneaux: ["09:30", "11:00", "14:30", "16:00", "19:00"] },
+  { id: 5, nom: "Courts Gayeulles", type: "municipal", adresse: "Parc des Gayeulles, Rennes", distance: "2.3 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"] },
+  { id: 6, nom: "Tennis Club Villejean", type: "club", adresse: "3 rue Villejean, Rennes", distance: "2.9 km", surfaces: ["Terre"], prix: "7€/h", adherents: false, creneaux: ["10:00", "13:00", "16:00", "18:30"] },
 ];
 
 const SURFACES = ["Toutes", "Dur", "Terre", "Gazon"];
@@ -38,14 +39,12 @@ export default function ReserverScreen() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-xl font-black mb-3" style={{ fontFamily: "Archivo Black, sans-serif" }}>
-          Réserver un court
-        </h1>
+        <h1 className="text-xl font-black mb-3" style={{ fontFamily: "Archivo Black, sans-serif" }}>Réserver un court</h1>
         <div className="flex gap-2 mb-3">
           {["Tous", "Club", "Municipal"].map((t) => (
             <button key={t} onClick={() => setTypeFiltre(t)}
               className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-all"
-              style={{ backgroundColor: typeFiltre === t ? "#1E5FAF" : "#F3F4F6", color: typeFiltre === t ? "white" : "#374151" }}>
+              style={{ backgroundColor: typeFiltre === t ? couleurSaison : "#F3F4F6", color: typeFiltre === t ? "white" : "#374151" }}>
               {t === "Club" && <Lock size={11} />}
               {t === "Municipal" && <Unlock size={11} />}
               {t}
@@ -56,7 +55,7 @@ export default function ReserverScreen() {
           {SURFACES.map((s) => (
             <button key={s} onClick={() => setSurfaceFiltre(s)}
               className="px-3 py-1 rounded-full text-xs font-medium transition-all"
-              style={{ backgroundColor: surfaceFiltre === s ? "#C75D3F" : "#F3F4F6", color: surfaceFiltre === s ? "white" : "#374151" }}>
+              style={{ backgroundColor: surfaceFiltre === s ? couleurSaison : "#F3F4F6", color: surfaceFiltre === s ? "white" : "#374151" }}>
               {s}
             </button>
           ))}
@@ -66,33 +65,18 @@ export default function ReserverScreen() {
       <div className="mx-4 mt-4 rounded-2xl overflow-hidden border border-gray-200 relative" style={{ height: "140px", backgroundColor: "#E8F4E8" }}>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <MapPin size={24} style={{ color: "#1E5FAF" }} className="mx-auto mb-1" />
+            <MapPin size={24} style={{ color: couleurSaison }} className="mx-auto mb-1" />
             <p className="text-xs text-gray-500">Rennes — {courtsFiltres.length} courts disponibles</p>
           </div>
         </div>
         {courtsFiltres.slice(0, 5).map((c, i) => (
           <div key={c.id}
             className="absolute w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer"
-            style={{ backgroundColor: c.couleur, top: `${15 + (i % 3) * 30}%`, left: `${10 + i * 17}%` }}
+            style={{ backgroundColor: couleurSaison, top: `${15 + (i % 3) * 30}%`, left: `${10 + i * 17}%` }}
             onClick={() => setCourtSelectionne(c)}>
             {c.type === "municipal" ? "M" : "C"}
           </div>
         ))}
-      </div>
-
-      <div className="flex gap-4 px-4 mt-2">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#1E5FAF" }} />
-          <span className="text-xs text-gray-500">Club (adhérents)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#2D5016" }} />
-          <span className="text-xs text-gray-500">Municipal (libre)</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#C75D3F" }} />
-          <span className="text-xs text-gray-500">Club (ouvert)</span>
-        </div>
       </div>
 
       <div className="px-4 mt-4 pb-24">
@@ -101,12 +85,12 @@ export default function ReserverScreen() {
           {courtsFiltres.map((court) => (
             <div key={court.id}
               className="bg-white rounded-2xl p-4 shadow-sm border transition-all cursor-pointer"
-              style={{ borderColor: courtSelectionne?.id === court.id ? "#1E5FAF" : "#F3F4F6", borderWidth: courtSelectionne?.id === court.id ? 2 : 1 }}
+              style={{ borderColor: courtSelectionne?.id === court.id ? couleurSaison : "#F3F4F6", borderWidth: courtSelectionne?.id === court.id ? 2 : 1 }}
               onClick={() => { setCourtSelectionne(court); setCreneauSelectionne(null); }}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: court.couleur + "20" }}>
-                    {court.type === "municipal" ? <Unlock size={18} style={{ color: court.couleur }} /> : <Lock size={18} style={{ color: court.couleur }} />}
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: couleurSaison + "20" }}>
+                    {court.type === "municipal" ? <Unlock size={18} style={{ color: couleurSaison }} /> : <Lock size={18} style={{ color: couleurSaison }} />}
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 text-sm">{court.nom}</p>
@@ -114,7 +98,7 @@ export default function ReserverScreen() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="font-bold text-sm" style={{ color: court.prix === "Gratuit" ? "#2D5016" : "#1E5FAF" }}>{court.prix}</span>
+                  <span className="font-bold text-sm" style={{ color: court.prix === "Gratuit" ? "#2D5016" : couleurSaison }}>{court.prix}</span>
                   {court.adherents && <p className="text-xs text-orange-500 font-medium">Adhérents</p>}
                 </div>
               </div>
@@ -136,7 +120,7 @@ export default function ReserverScreen() {
                       <button key={c}
                         onClick={(e) => { e.stopPropagation(); setCreneauSelectionne(c); }}
                         className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
-                        style={{ backgroundColor: creneauSelectionne === c ? "#1E5FAF" : "#F3F4F6", color: creneauSelectionne === c ? "white" : "#374151" }}>
+                        style={{ backgroundColor: creneauSelectionne === c ? couleurSaison : "#F3F4F6", color: creneauSelectionne === c ? "white" : "#374151" }}>
                         {c}
                       </button>
                     ))}
@@ -144,7 +128,7 @@ export default function ReserverScreen() {
                   {creneauSelectionne && creneauSelectionne !== "Libre accès" && (
                     <button onClick={confirmerReservation}
                       className="w-full mt-3 py-2.5 rounded-xl text-white font-bold text-sm"
-                      style={{ backgroundColor: "#1E5FAF" }}>
+                      style={{ backgroundColor: couleurSaison }}>
                       Réserver {creneauSelectionne} →
                     </button>
                   )}

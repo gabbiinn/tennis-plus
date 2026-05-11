@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { supabase } from './lib/supabase';
+import { getCouleurSaison, getNomSaison } from './utils/saison';
 import BottomNav from './components/BottomNav';
 import Auth from './screens/Auth';
 import Home from './screens/Home';
@@ -12,6 +13,9 @@ import MessagesScreen from './screens/MessagesScreen';
 import TournoisScreen from './screens/TournoisScreen';
 import ProfilScreen from './screens/ProfilScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+
+export const couleurSaison = getCouleurSaison();
+export const nomSaison = getNomSaison();
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -26,10 +30,15 @@ export default function App() {
     verifierProfil();
   }, [user]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty('--couleur-saison', couleurSaison);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', couleurSaison);
+  }, []);
+
   if (loading || (user && profilExiste === null)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-tplus-cream">
-        <div className="font-display text-xl">CHARGEMENT...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: couleurSaison }}>
+        <div className="text-white font-black text-2xl" style={{ fontFamily: "Archivo Black, sans-serif" }}>TENNIS+</div>
       </div>
     );
   }
@@ -41,7 +50,7 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto bg-tplus-cream min-h-screen relative" style={{ maxWidth: '430px' }}>
+    <div className="mx-auto bg-gray-50 min-h-screen relative" style={{ maxWidth: '430px' }}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/partners" element={<PartenairesScreen />} />

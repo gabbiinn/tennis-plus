@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Trophy, Users, Calendar, MapPin, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { couleurSaison } from "../App";
 
 const TOURNOIS = [
   {
@@ -12,7 +13,6 @@ const TOURNOIS = [
     max: 16,
     prix: "Gratuit",
     statut: "ouvert",
-    couleur: "#1E5FAF",
     joueurs: ["Thomas R.", "Sophie M.", "Lucas B.", "Camille D.", "Maxime L.", "Julie P.", "Antoine K.", "Marie T.", "Pierre L.", "Sarah B.", "Kevin M.", "Laura D.", "Nicolas F.", "Emma R."],
     tableau: [
       { tour: "Quarts de finale", matchs: [
@@ -40,7 +40,6 @@ const TOURNOIS = [
     max: 16,
     prix: "5€",
     statut: "ouvert",
-    couleur: "#C75D3F",
     joueurs: ["Kevin M.", "Laura D.", "Nicolas F.", "Emma R.", "Pierre L.", "Sarah B.", "Marie T.", "Antoine K."],
     tableau: [],
   },
@@ -54,14 +53,9 @@ const TOURNOIS = [
     max: 32,
     prix: "Gratuit",
     statut: "ouvert",
-    couleur: "#2D5016",
     joueurs: ["Thomas R.", "Lucas B.", "Maxime L.", "Julie P.", "Kevin M.", "Nicolas F."],
     tableau: [],
   },
-];
-
-const MES_INSCRIPTIONS = [
-  { id: 1, nom: "Open Amical Thabor", date: "24-25 mai 2026", statut: "Confirmée ✅" },
 ];
 
 const NIVEAUX = ["Tous", "15/1", "15/2", "15/3", "30"];
@@ -95,13 +89,12 @@ export default function TournoisScreen() {
           <h1 className="text-lg font-black" style={{ fontFamily: "Archivo Black, sans-serif" }}>{t.nom}</h1>
         </div>
         <div className="px-4 mt-4 pb-24">
-          {/* Tableau */}
           {t.tableau.length > 0 && (
             <div className="mb-4">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Tableau</p>
               {t.tableau.map((tour) => (
                 <div key={tour.tour} className="mb-3">
-                  <p className="text-xs font-bold mb-2" style={{ color: t.couleur }}>{tour.tour}</p>
+                  <p className="text-xs font-bold mb-2" style={{ color: couleurSaison }}>{tour.tour}</p>
                   <div className="flex flex-col gap-2">
                     {tour.matchs.map((m, i) => (
                       <div key={i} className="bg-white rounded-xl px-4 py-3 border border-gray-100 flex items-center justify-between">
@@ -121,7 +114,6 @@ export default function TournoisScreen() {
               ))}
             </div>
           )}
-          {/* Joueurs inscrits */}
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Joueurs inscrits ({t.joueurs.length})</p>
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -129,9 +121,7 @@ export default function TournoisScreen() {
                 <div key={j} className="flex items-center gap-3 px-4 py-3"
                   style={{ borderBottom: i < t.joueurs.length - 1 ? "1px solid #F3F4F6" : "none" }}>
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ backgroundColor: t.couleur }}>
-                    {j[0]}
-                  </div>
+                    style={{ backgroundColor: couleurSaison }}>{j[0]}</div>
                   <p className="text-sm font-medium">{j}</p>
                 </div>
               ))}
@@ -144,16 +134,13 @@ export default function TournoisScreen() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-4 sticky top-0 z-10">
-        <h1 className="text-xl font-black mb-3" style={{ fontFamily: "Archivo Black, sans-serif" }}>
-          Tournois
-        </h1>
+        <h1 className="text-xl font-black mb-3" style={{ fontFamily: "Archivo Black, sans-serif" }}>Tournois</h1>
         <div className="flex gap-1 mb-3">
           {["tournois", "mes-inscriptions"].map((o) => (
             <button key={o} onClick={() => setOnglet(o)}
               className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
-              style={{ backgroundColor: onglet === o ? "#1E5FAF" : "#F3F4F6", color: onglet === o ? "white" : "#6B7280" }}>
+              style={{ backgroundColor: onglet === o ? couleurSaison : "#F3F4F6", color: onglet === o ? "white" : "#6B7280" }}>
               {o === "tournois" ? "🏆 Tournois" : "📋 Mes inscriptions"}
             </button>
           ))}
@@ -163,7 +150,7 @@ export default function TournoisScreen() {
             {NIVEAUX.map((n) => (
               <button key={n} onClick={() => setNiveauFiltre(n)}
                 className="px-3 py-1 rounded-full text-xs font-medium transition-all"
-                style={{ backgroundColor: niveauFiltre === n ? "#1E5FAF" : "#F3F4F6", color: niveauFiltre === n ? "white" : "#374151" }}>
+                style={{ backgroundColor: niveauFiltre === n ? couleurSaison : "#F3F4F6", color: niveauFiltre === n ? "white" : "#374151" }}>
                 {n}
               </button>
             ))}
@@ -179,38 +166,30 @@ export default function TournoisScreen() {
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: t.couleur + "20" }}>
-                      <Trophy size={18} style={{ color: t.couleur }} />
+                      style={{ backgroundColor: couleurSaison + "20" }}>
+                      <Trophy size={18} style={{ color: couleurSaison }} />
                     </div>
                     <div>
                       <p className="font-bold text-sm">{t.nom}</p>
-                      <p className="text-xs text-gray-400 flex items-center gap-1">
-                        <Calendar size={10} /> {t.date}
-                      </p>
+                      <p className="text-xs text-gray-400 flex items-center gap-1"><Calendar size={10} /> {t.date}</p>
                     </div>
                   </div>
-                  <span className="font-bold text-sm" style={{ color: t.prix === "Gratuit" ? "#2D5016" : "#1E5FAF" }}>
-                    {t.prix}
-                  </span>
+                  <span className="font-bold text-sm" style={{ color: t.prix === "Gratuit" ? "#2D5016" : couleurSaison }}>{t.prix}</span>
                 </div>
-                <p className="text-xs text-gray-400 flex items-center gap-1 mb-2">
-                  <MapPin size={10} /> {t.lieu}
-                </p>
+                <p className="text-xs text-gray-400 flex items-center gap-1 mb-2"><MapPin size={10} /> {t.lieu}</p>
                 <div className="flex gap-1 mb-3 flex-wrap">
                   {t.niveau.map((n) => (
                     <span key={n} className="text-xs px-2 py-0.5 rounded-full font-medium"
-                      style={{ backgroundColor: "#EFF6FF", color: "#1E5FAF" }}>{n}</span>
+                      style={{ backgroundColor: couleurSaison + "20", color: couleurSaison }}>{n}</span>
                   ))}
                 </div>
-                {/* Jauge inscrits */}
                 <div className="mb-3">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
                     <span className="flex items-center gap-1"><Users size={10} /> {t.inscrits}/{t.max} inscrits</span>
                     <span>{Math.round((t.inscrits / t.max) * 100)}% complet</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all"
-                      style={{ width: `${(t.inscrits / t.max) * 100}%`, backgroundColor: t.couleur }} />
+                    <div className="h-full rounded-full" style={{ width: `${(t.inscrits / t.max) * 100}%`, backgroundColor: couleurSaison }} />
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -219,11 +198,9 @@ export default function TournoisScreen() {
                     {tournoisOuverts[t.id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     Détails
                   </button>
-                  <button
-                    onClick={() => sInscrire(t.id)}
-                    disabled={tournoisInscrits.includes(t.id)}
+                  <button onClick={() => sInscrire(t.id)} disabled={tournoisInscrits.includes(t.id)}
                     className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
-                    style={{ backgroundColor: tournoisInscrits.includes(t.id) ? "#F3F4F6" : t.couleur, color: tournoisInscrits.includes(t.id) ? "#9CA3AF" : "white" }}>
+                    style={{ backgroundColor: tournoisInscrits.includes(t.id) ? "#F3F4F6" : couleurSaison, color: tournoisInscrits.includes(t.id) ? "#9CA3AF" : "white" }}>
                     {tournoisInscrits.includes(t.id) ? <><Check size={14} /> Inscrit</> : "S'inscrire →"}
                   </button>
                 </div>
@@ -232,7 +209,7 @@ export default function TournoisScreen() {
                 <div className="border-t border-gray-100 px-4 py-3 bg-gray-50">
                   <button onClick={() => setVueTournoi(t.id)}
                     className="w-full py-2 rounded-xl text-sm font-bold text-white"
-                    style={{ backgroundColor: t.couleur }}>
+                    style={{ backgroundColor: couleurSaison }}>
                     Voir tableau et joueurs →
                   </button>
                 </div>
@@ -255,21 +232,19 @@ export default function TournoisScreen() {
                 <div key={t.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ backgroundColor: t.couleur + "20" }}>
-                      <Trophy size={18} style={{ color: t.couleur }} />
+                      style={{ backgroundColor: couleurSaison + "20" }}>
+                      <Trophy size={18} style={{ color: couleurSaison }} />
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-sm">{t.nom}</p>
                       <p className="text-xs text-gray-400">{t.date}</p>
                     </div>
                     <span className="text-xs font-bold px-2 py-1 rounded-full"
-                      style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>
-                      Confirmée ✅
-                    </span>
+                      style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>Confirmée ✅</span>
                   </div>
                   <button onClick={() => setVueTournoi(t.id)}
                     className="w-full mt-3 py-2 rounded-xl text-sm font-bold border"
-                    style={{ borderColor: t.couleur, color: t.couleur }}>
+                    style={{ borderColor: couleurSaison, color: couleurSaison }}>
                     Voir le tableau →
                   </button>
                 </div>
