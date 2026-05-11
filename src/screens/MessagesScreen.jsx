@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Check, X, Send, Users, ChevronRight, Clock } from "lucide-react";
+import { Send, Users, ChevronRight, Clock } from "lucide-react";
 import { couleurSaison } from "../App";
 import { supabase } from "../lib/supabase";
 
@@ -24,8 +24,10 @@ function ConversationView({ contact, currentUser, onClose }) {
       .channel("messages-" + contact.id)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
         const m = payload.new;
-        if ((m.expediteur_id === currentUser.id && m.destinataire_id === contact.id) ||
-            (m.expediteur_id === contact.id && m.destinataire_id === currentUser.id)) {
+        if (
+          (m.expediteur_id === currentUser.id && m.destinataire_id === contact.id) ||
+          (m.expediteur_id === contact.id && m.destinataire_id === currentUser.id)
+        ) {
           setMessages((prev) => [...prev, m]);
         }
       })
@@ -83,7 +85,7 @@ function ConversationView({ contact, currentUser, onClose }) {
         {messages.length === 0 && (
           <div className="text-center py-8 text-gray-400">
             <p className="text-3xl mb-2">🎾</p>
-            <p className="text-sm">Commence la conversation !</p>
+            <p className="text-sm">Début de la conversation</p>
           </div>
         )}
         {messages.map((m) => (
@@ -148,16 +150,24 @@ export default function MessagesScreen() {
 
       const { data } = await supabase
         .from("messages")
-        .select("*, expediteur:profils!messages_expediteur_id_fkey(id, nom, serie), destinataire:profils!messages_destinataire_id_fkey(id, nom, serie)")
+        .select("*")
         .or(`expediteur_id.eq.${user.id},destinataire_id.eq.${user.id}`)
         .order("created_at", { ascending: false });
 
-      if (data) {
+      if (data && data.length > 0) {
+        const autresIds = [...new Set(data.map((m) => m.expediteur_id === user.id ? m.destinataire_id : m.expediteur_id))];
+        const { data: profils } = await supabase.from("profils").select("id, nom, serie").in("id", autresIds);
+        const profilsMap = {};
+        profils?.forEach((p) => { profilsMap[p.id] = p; });
         const convMap = {};
         data.forEach((m) => {
-          const autre = m.expediteur_id === user.id ? m.destinataire : m.expediteur;
-          if (autre && !convMap[autre.id]) {
-            convMap[autre.id] = { ...autre, dernier: m.contenu, heure: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) };
+          const autreId = m.expediteur_id === user.id ? m.destinataire_id : m.expediteur_id;
+          if (!convMap[autreId] && profilsMap[autreId]) {
+            convMap[autreId] = {
+              ...profilsMap[autreId],
+              dernier: m.contenu,
+              heure: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            };
           }
         });
         setConversations(Object.values(convMap));
