@@ -1,13 +1,24 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Calendar, Trophy, MessageCircle, ArrowUpRight, MapPin, TrendingUp } from 'lucide-react';
 import Header from '../components/Header';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [profil, setProfil] = useState(null);
 
-  // TODO: remplacer par les vraies données depuis Supabase
+  useEffect(() => {
+    const charger = async () => {
+      if (!user) return;
+      const { data } = await supabase.from("profils").select("secteurs, serie").eq("id", user.id).single();
+      if (data) setProfil(data);
+    };
+    charger();
+  }, [user]);
+
   const stats = { winRate: 68, matches: 47, rank: '+2' };
   const nextMatch = {
     date: 'MAR 28 AVR',
@@ -17,12 +28,13 @@ export default function Home() {
     location: 'TC CESSON'
   };
 
+  const locationLabel = profil?.secteurs?.[0]?.toUpperCase() || 'RENNES';
+
   return (
     <div className="min-h-screen pb-24">
-      <Header user={user} />
+      <Header user={user} location={locationLabel} />
 
       <div className="px-5">
-        {/* HERO - PROCHAIN MATCH */}
         <div className="relative overflow-hidden mb-2.5 rounded-2xl bg-tplus-black p-4">
           <div className="flex items-center justify-between">
             <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-tplus-blue">PROCHAIN MATCH</p>
@@ -36,8 +48,8 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-white/20">
             <div className="flex-1">
-              <p className="text-[9px] font-bold uppercase text-white/50">TOI · 15/3</p>
-              <p className="font-display text-xs uppercase text-tplus-cream">ALEX MARTIN</p>
+              <p className="text-[9px] font-bold uppercase text-white/50">TOI · {profil?.serie || '?'}</p>
+              <p className="font-display text-xs uppercase text-tplus-cream">{user?.email?.split('@')[0]?.toUpperCase()}</p>
             </div>
             <p className="font-display text-base text-tplus-blue">VS</p>
             <div className="flex-1 text-right">
@@ -56,7 +68,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* STATS COMPACTES */}
         <div className="grid grid-cols-3 gap-2 mb-2.5">
           <div className="rounded-xl p-3 bg-white border border-gray-200">
             <div className="flex items-baseline gap-1">
@@ -78,7 +89,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 4 QUICK ACTIONS */}
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => navigate('/partners')} className="relative overflow-hidden text-left rounded-2xl p-4 bg-tplus-blue min-h-[100px]">
             <Users size={22} color="#FFF" strokeWidth={2.5} />
