@@ -12,18 +12,21 @@ export default function PartenairesScreen() {
   const [demandeEnvoyee, setDemandeEnvoyee] = useState([]);
   const [joueurs, setJoueurs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
-    const chargerJoueurs = async () => {
+    const charger = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
       setLoading(true);
       const { data, error } = await supabase
         .from("profils")
         .select("*")
         .order("created_at", { ascending: false });
-      if (!error && data) setJoueurs(data);
+      if (!error && data) setJoueurs(data.filter((j) => j.id !== user?.id));
       setLoading(false);
     };
-    chargerJoueurs();
+    charger();
   }, []);
 
   const joueursFiltres = joueurs.filter((j) => {
@@ -32,8 +35,14 @@ export default function PartenairesScreen() {
     return true;
   });
 
-  const envoyerDemande = (id) => {
-    setDemandeEnvoyee((prev) => [...prev, id]);
+  const envoyerDemande = async (joueur) => {
+    if (demandeEnvoyee.includes(joueur.id) || !currentUser) return;
+    await supabase.from("messages").insert({
+      expediteur_id: currentUser.id,
+      destinataire_id: joueur.id,
+      contenu: "👋 Salut ! Je cherche un partenaire pour jouer. Tu es dispo ?",
+    });
+    setDemandeEnvoyee((prev) => [...prev, joueur.id]);
   };
 
   const getInitiales = (nom) => {
@@ -159,7 +168,7 @@ export default function PartenairesScreen() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => envoyerDemande(joueur.id)}
+                  <button onClick={() => envoyerDemande(joueur)}
                     disabled={demandeEnvoyee.includes(joueur.id)}
                     className="px-3 py-2 rounded-xl text-sm font-bold transition-all flex-shrink-0"
                     style={{ backgroundColor: demandeEnvoyee.includes(joueur.id) ? "#F3F4F6" : couleurSaison, color: demandeEnvoyee.includes(joueur.id) ? "#9CA3AF" : "white" }}>
