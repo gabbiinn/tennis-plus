@@ -337,8 +337,7 @@ export default function TournoisScreen() {
               const complet = inscrits >= max;
               return (
                 <div key={t.id}
-                  className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
-                  onClick={() => ouvrirDetail(t.id)}>
+                  className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -379,19 +378,28 @@ export default function TournoisScreen() {
                           style={{ width: `${Math.min((inscrits / max) * 100, 100)}%`, backgroundColor: complet ? "#EF4444" : couleurSaison }} />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 mt-1">
                       {estInscrit ? (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1"
+                        <button
+                          onClick={(e) => { e.stopPropagation(); seDesinscrire(t.id); }}
+                          className="flex-1 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-1"
                           style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>
-                          <Check size={12} /> Inscrit
-                        </span>
+                          <Check size={14} /> Inscrit — Se désinscrire
+                        </button>
                       ) : (
-                        <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-                          style={{ backgroundColor: complet ? "#F3F4F6" : couleurSaison + "15", color: complet ? "#9CA3AF" : couleurSaison }}>
-                          {complet ? "Complet" : "S'inscrire"}
-                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); sInscrire(t.id); }}
+                          disabled={complet || inscribing === t.id}
+                          className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+                          style={{ backgroundColor: complet ? "#F3F4F6" : couleurSaison, color: complet ? "#9CA3AF" : "white" }}>
+                          {inscribing === t.id ? "..." : complet ? "Complet" : "S'inscrire →"}
+                        </button>
                       )}
-                      <span className="text-xs text-gray-400">Voir détails →</span>
+                      <button
+                        onClick={() => ouvrirDetail(t.id)}
+                        className="px-3 py-2.5 rounded-xl text-sm font-bold border border-gray-200 text-gray-500 whitespace-nowrap">
+                        Détails
+                      </button>
                     </div>
                   </div>
                 </div>
