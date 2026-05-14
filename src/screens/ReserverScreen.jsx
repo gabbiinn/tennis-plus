@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { MapPin, Clock, Lock, Unlock } from "lucide-react";
 import { couleurSaison } from "../App";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 const SURFACES = ["Toutes", "Dur", "Terre", "Gazon"];
 const CRENEAUX_DEFAUT = ["09:00", "10:30", "12:00", "14:00", "16:00", "17:30", "19:00"];
@@ -18,6 +19,7 @@ const surfaceLabel = (s) => {
 };
 
 export default function ReserverScreen() {
+  const { user: currentUser } = useAuth();
   const [surfaceFiltre, setSurfaceFiltre] = useState("Toutes");
   const [typeFiltre, setTypeFiltre] = useState("Tous");
   const [clubs, setClubs] = useState([]);
@@ -27,7 +29,6 @@ export default function ReserverScreen() {
   const [reservationConfirmee, setReservationConfirmee] = useState(false);
   const [reservationErreur, setReservationErreur] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     charger();
@@ -35,8 +36,6 @@ export default function ReserverScreen() {
 
   const charger = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
     const { data } = await supabase.from("clubs").select("*").order("name");
     if (data) setClubs(data);
     setLoading(false);

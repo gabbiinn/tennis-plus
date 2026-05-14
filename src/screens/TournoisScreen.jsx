@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Trophy, Users, Calendar, MapPin, Check } from "lucide-react";
 import { couleurSaison } from "../App";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 const NIVEAUX_FILTRES = ["Tous", "15/1", "15/2", "15/3", "30", "NC"];
 
 export default function TournoisScreen() {
+  const { user: currentUser } = useAuth();
   const [niveauFiltre, setNiveauFiltre] = useState("Tous");
   const [tournois, setTournois] = useState([]);
   const [inscriptionsUser, setInscriptionsUser] = useState([]);
@@ -13,19 +15,16 @@ export default function TournoisScreen() {
   const [onglet, setOnglet] = useState("tournois");
   const [vueTournoi, setVueTournoi] = useState(null);
   const [joueursTournoi, setJoueursTournoi] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [inscribing, setInscribing] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
     charger();
-  }, []);
+  }, [currentUser]);
 
   const charger = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
 
     const { data: ts } = await supabase
       .from("tournaments")
@@ -46,11 +45,11 @@ export default function TournoisScreen() {
       setInscriptionsCounts(counts);
     }
 
-    if (user) {
+    if (currentUser) {
       const { data: userRegs } = await supabase
         .from("tournament_registrations")
         .select("tournament_id")
-        .eq("user_id", user.id);
+        .eq("user_id", currentUser.id);
       if (userRegs) setInscriptionsUser(userRegs.map((r) => r.tournament_id));
     }
 
