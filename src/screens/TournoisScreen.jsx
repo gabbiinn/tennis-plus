@@ -165,7 +165,7 @@ export default function TournoisScreen() {
           </span>
         </div>
 
-        <div className="px-4 mt-4 pb-32 flex flex-col gap-4">
+        <div className="px-4 mt-4 pb-44 flex flex-col gap-4">
           {/* Infos principales */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-3">
@@ -260,7 +260,7 @@ export default function TournoisScreen() {
         </div>
 
         {/* Bouton inscription fixé en bas */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-10" style={{ maxWidth: "430px", margin: "0 auto" }}>
+        <div className="fixed bottom-[72px] left-0 right-0 px-4 pb-3 pt-3 bg-white border-t border-gray-100 z-10" style={{ maxWidth: "430px", margin: "0 auto" }}>
           {estInscrit ? (
             <button onClick={() => seDesinscrire(t.id)}
               className="w-full py-3.5 rounded-2xl text-sm font-bold border-2 border-gray-200 text-gray-500">
