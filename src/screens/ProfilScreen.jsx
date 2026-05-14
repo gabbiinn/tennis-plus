@@ -1,7 +1,79 @@
 import { useState, useEffect } from "react";
-import { Camera, Edit2, LogOut, Trophy, Check, X } from "lucide-react";
+import { Camera, Edit2, LogOut, Trophy, Check, X, Calendar, MapPin } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { couleurSaison } from "../App";
+
+function TournoisProfil() {
+  const [inscriptions, setInscriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const charger = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase
+        .from("tournament_registrations")
+        .select("registered_at, tournaments(id, name, start_date, entry_fee, clubs(name))")
+        .eq("user_id", user.id)
+        .order("registered_at", { ascending: false });
+      if (data) setInscriptions(data);
+      setLoading(false);
+    };
+    charger();
+  }, []);
+
+  const formatDate = (d) => {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  if (loading) return <div className="text-center py-8 text-gray-400 text-sm">Chargement...</div>;
+
+  if (inscriptions.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center text-gray-400">
+        <Trophy size={32} className="mx-auto mb-2 opacity-30" />
+        <p className="font-medium text-sm">Pas encore de tournois</p>
+        <p className="text-xs mt-1">Inscris-toi depuis l'onglet Tournois !</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+        {inscriptions.length} inscription{inscriptions.length > 1 ? "s" : ""}
+      </p>
+      {inscriptions.map((insc, i) => {
+        const t = insc.tournaments;
+        if (!t) return null;
+        return (
+          <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: couleurSaison + "20" }}>
+                <Trophy size={18} style={{ color: couleurSaison }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm">{t.name}</p>
+                <p className="text-xs text-gray-400 flex items-center gap-1">
+                  <Calendar size={10} /> {formatDate(t.start_date)}
+                </p>
+                {t.clubs?.name && (
+                  <p className="text-xs text-gray-400 flex items-center gap-1">
+                    <MapPin size={10} /> {t.clubs.name}
+                  </p>
+                )}
+              </div>
+              <span className="text-xs font-bold px-2 py-1 rounded-full"
+                style={{ backgroundColor: "#DCFCE7", color: "#166534" }}>✅</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const BADGES = [
   { id: 1, emoji: "🎾", nom: "Premier match", desc: "Tu as joué ton 1er match", obtenu: true },
@@ -143,14 +215,7 @@ export default function ProfilScreen() {
         )}
 
         {onglet === "tournois" && (
-          <div className="flex flex-col gap-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Mes tournois</p>
-            <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center text-gray-400">
-              <Trophy size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="font-medium text-sm">Pas encore de tournois</p>
-              <p className="text-xs mt-1">Inscris-toi depuis l'onglet Tournois !</p>
-            </div>
-          </div>
+          <TournoisProfil />
         )}
 
         <button onClick={deconnecter}

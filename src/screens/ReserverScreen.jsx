@@ -1,39 +1,108 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Clock, Lock, Unlock } from "lucide-react";
 import { couleurSaison } from "../App";
-
-const COURTS = [
-  { id: 1, nom: "TC Rennes", type: "club", adresse: "2 rue de la Racquette, Rennes", distance: "0.8 km", surfaces: ["Dur", "Terre"], prix: "8€/h", adherents: true, creneaux: ["09:00", "10:30", "14:00", "17:30"] },
-  { id: 2, nom: "Rennes Ill. Tennis", type: "club", adresse: "15 av. des Sports, Rennes", distance: "1.4 km", surfaces: ["Terre"], prix: "10€/h", adherents: true, creneaux: ["08:00", "11:00", "15:00", "18:00"] },
-  { id: 3, nom: "Courts Thabor", type: "municipal", adresse: "Parc du Thabor, Rennes", distance: "1.1 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"] },
-  { id: 4, nom: "TC Cesson-Sévigné", type: "club", adresse: "8 rue du Stade, Cesson", distance: "3.2 km", surfaces: ["Dur", "Gazon"], prix: "12€/h", adherents: true, creneaux: ["09:30", "11:00", "14:30", "16:00", "19:00"] },
-  { id: 5, nom: "Courts Gayeulles", type: "municipal", adresse: "Parc des Gayeulles, Rennes", distance: "2.3 km", surfaces: ["Dur"], prix: "Gratuit", adherents: false, creneaux: ["Libre accès"] },
-  { id: 6, nom: "Tennis Club Villejean", type: "club", adresse: "3 rue Villejean, Rennes", distance: "2.9 km", surfaces: ["Terre"], prix: "7€/h", adherents: false, creneaux: ["10:00", "13:00", "16:00", "18:30"] },
-];
+import { supabase } from "../lib/supabase";
 
 const SURFACES = ["Toutes", "Dur", "Terre", "Gazon"];
+const CRENEAUX_DEFAUT = ["09:00", "10:30", "12:00", "14:00", "16:00", "17:30", "19:00"];
+
+const surfaceColor = (s) => {
+  if (s === "clay" || s === "Terre") return { bg: "#FEF3C7", text: "#92400E" };
+  if (s === "grass" || s === "Gazon") return { bg: "#DCFCE7", text: "#166534" };
+  return { bg: "#DBEAFE", text: "#1E40AF" };
+};
+
+const surfaceLabel = (s) => {
+  const map = { clay: "Terre", hard: "Dur", grass: "Gazon" };
+  return map[s] || s;
+};
 
 export default function ReserverScreen() {
   const [surfaceFiltre, setSurfaceFiltre] = useState("Toutes");
   const [typeFiltre, setTypeFiltre] = useState("Tous");
+  const [clubs, setClubs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [courtSelectionne, setCourtSelectionne] = useState(null);
   const [creneauSelectionne, setCreneauSelectionne] = useState(null);
   const [reservationConfirmee, setReservationConfirmee] = useState(false);
+  const [reservationErreur, setReservationErreur] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const courtsFiltres = COURTS.filter((c) => {
-    if (typeFiltre === "Club" && c.type !== "club") return false;
-    if (typeFiltre === "Municipal" && c.type !== "municipal") return false;
-    if (surfaceFiltre !== "Toutes" && !c.surfaces.includes(surfaceFiltre)) return false;
+  useEffect(() => {
+    charger();
+  }, []);
+
+  const charger = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+    const { data } = await supabase.from("clubs").select("*").order("name");
+    if (data) setClubs(data);
+    setLoading(false);
+  };
+
+  const getType = (club) => {
+    if (club.type) return club.type;
+    if (!club.price_per_hour || Number(club.price_per_hour) === 0) return "municipal";
+    return "club";
+  };
+
+  const getPrix = (club) => {
+    if (!club.price_per_hour || Number(club.price_per_hour) === 0) return "Gratuit";
+    return `${Number(club.price_per_hour)}€/h`;
+  };
+
+  const getCreneaux = (club) => {
+    if (club.creneaux && club.creneaux.length > 0) return club.creneaux;
+    if (getType(club) === "municipal") return ["Libre accès"];
+    return CRENEAUX_DEFAUT;
+  };
+
+  const getSurfaces = (club) => {
+    if (!club.surfaces) return [];
+    return club.surfaces.map(surfaceLabel);
+  };
+
+  const clubsFiltres = clubs.filter((c) => {
+    if (typeFiltre === "Club" && getType(c) !== "club") return false;
+    if (typeFiltre === "Municipal" && getType(c) !== "municipal") return false;
+    if (surfaceFiltre !== "Toutes") {
+      const surfaces = getSurfaces(c);
+      if (!surfaces.includes(surfaceFiltre)) return false;
+    }
     return true;
   });
 
-  const confirmerReservation = () => {
-    setReservationConfirmee(true);
-    setTimeout(() => {
-      setReservationConfirmee(false);
-      setCourtSelectionne(null);
-      setCreneauSelectionne(null);
-    }, 2500);
+  const confirmerReservation = async () => {
+    if (!courtSelectionne || !creneauSelectionne || saving) return;
+    setSaving(true);
+    setReservationErreur(false);
+
+    const today = new Date();
+    const [h, m] = creneauSelectionne.split(":");
+    today.setHours(parseInt(h), parseInt(m || 0), 0, 0);
+
+    const { error } = await supabase.from("bookings").insert({
+      user_id: currentUser.id,
+      club_id: courtSelectionne.id,
+      start_time: today.toISOString(),
+      duration_minutes: 60,
+      status: "confirmed",
+    });
+
+    setSaving(false);
+    if (error) {
+      setReservationErreur(true);
+      setTimeout(() => setReservationErreur(false), 3000);
+    } else {
+      setReservationConfirmee(true);
+      setTimeout(() => {
+        setReservationConfirmee(false);
+        setCourtSelectionne(null);
+        setCreneauSelectionne(null);
+      }, 2500);
+    }
   };
 
   return (
@@ -66,82 +135,141 @@ export default function ReserverScreen() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <MapPin size={24} style={{ color: couleurSaison }} className="mx-auto mb-1" />
-            <p className="text-xs text-gray-500">Rennes — {courtsFiltres.length} courts disponibles</p>
+            <p className="text-xs text-gray-500">Rennes — {clubsFiltres.length} courts disponibles</p>
           </div>
         </div>
-        {courtsFiltres.slice(0, 5).map((c, i) => (
+        {clubsFiltres.slice(0, 5).map((c, i) => (
           <div key={c.id}
             className="absolute w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md cursor-pointer"
             style={{ backgroundColor: couleurSaison, top: `${15 + (i % 3) * 30}%`, left: `${10 + i * 17}%` }}
-            onClick={() => setCourtSelectionne(c)}>
-            {c.type === "municipal" ? "M" : "C"}
+            onClick={() => { setCourtSelectionne(c); setCreneauSelectionne(null); }}>
+            {getType(c) === "municipal" ? "M" : "C"}
           </div>
         ))}
       </div>
 
       <div className="px-4 mt-4 pb-24">
-        <p className="text-sm text-gray-500 mb-3">{courtsFiltres.length} court{courtsFiltres.length > 1 ? "s" : ""} trouvé{courtsFiltres.length > 1 ? "s" : ""}</p>
-        <div className="flex flex-col gap-3">
-          {courtsFiltres.map((court) => (
-            <div key={court.id}
-              className="bg-white rounded-2xl p-4 shadow-sm border transition-all cursor-pointer"
-              style={{ borderColor: courtSelectionne?.id === court.id ? couleurSaison : "#F3F4F6", borderWidth: courtSelectionne?.id === court.id ? 2 : 1 }}
-              onClick={() => { setCourtSelectionne(court); setCreneauSelectionne(null); }}>
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: couleurSaison + "20" }}>
-                    {court.type === "municipal" ? <Unlock size={18} style={{ color: couleurSaison }} /> : <Lock size={18} style={{ color: couleurSaison }} />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{court.nom}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1"><MapPin size={10} /> {court.distance}</p>
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-4 border border-gray-100 animate-pulse">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gray-200" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-40 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-24" />
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-bold text-sm" style={{ color: court.prix === "Gratuit" ? "#2D5016" : couleurSaison }}>{court.prix}</span>
-                  {court.adherents && <p className="text-xs text-orange-500 font-medium">Adhérents</p>}
+                <div className="flex gap-2">
+                  <div className="h-6 bg-gray-100 rounded-full w-16" />
+                  <div className="h-6 bg-gray-100 rounded-full w-16" />
                 </div>
               </div>
-              <div className="flex gap-1 mb-3">
-                {court.surfaces.map((s) => (
-                  <span key={s} className="text-xs px-2 py-0.5 rounded-full font-medium"
-                    style={{ backgroundColor: s === "Terre" ? "#FEF3C7" : s === "Gazon" ? "#DCFCE7" : "#DBEAFE", color: s === "Terre" ? "#92400E" : s === "Gazon" ? "#166534" : "#1E40AF" }}>
-                    {s}
-                  </span>
-                ))}
-              </div>
-              {courtSelectionne?.id === court.id && (
-                <div className="border-t border-gray-100 pt-3">
-                  <p className="text-xs text-gray-500 mb-2 flex items-center gap-1 font-medium">
-                    <Clock size={11} /> Créneaux disponibles aujourd'hui
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {court.creneaux.map((c) => (
-                      <button key={c}
-                        onClick={(e) => { e.stopPropagation(); setCreneauSelectionne(c); }}
-                        className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
-                        style={{ backgroundColor: creneauSelectionne === c ? couleurSaison : "#F3F4F6", color: creneauSelectionne === c ? "white" : "#374151" }}>
-                        {c}
-                      </button>
-                    ))}
+            ))}
+          </div>
+        ) : clubsFiltres.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <p className="text-4xl mb-3">🎾</p>
+            <p className="font-bold">Aucun court trouvé</p>
+            <p className="text-sm mt-1">Change les filtres !</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-500 mb-3">
+              {clubsFiltres.length} court{clubsFiltres.length > 1 ? "s" : ""} trouvé{clubsFiltres.length > 1 ? "s" : ""}
+            </p>
+            <div className="flex flex-col gap-3">
+              {clubsFiltres.map((court) => {
+                const type = getType(court);
+                const prix = getPrix(court);
+                const creneaux = getCreneaux(court);
+                const surfaces = getSurfaces(court);
+                const estSelectionne = courtSelectionne?.id === court.id;
+                return (
+                  <div key={court.id}
+                    className="bg-white rounded-2xl p-4 shadow-sm border transition-all cursor-pointer"
+                    style={{ borderColor: estSelectionne ? couleurSaison : "#F3F4F6", borderWidth: estSelectionne ? 2 : 1 }}
+                    onClick={() => { setCourtSelectionne(court); setCreneauSelectionne(null); }}>
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                          style={{ backgroundColor: couleurSaison + "20" }}>
+                          {type === "municipal"
+                            ? <Unlock size={18} style={{ color: couleurSaison }} />
+                            : <Lock size={18} style={{ color: couleurSaison }} />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm">{court.name}</p>
+                          <p className="text-xs text-gray-400 flex items-center gap-1">
+                            <MapPin size={10} /> {court.address || court.city || "Rennes"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-sm"
+                          style={{ color: prix === "Gratuit" ? "#2D5016" : couleurSaison }}>{prix}</span>
+                        {type === "club" && (
+                          <p className="text-xs text-orange-500 font-medium">Club</p>
+                        )}
+                      </div>
+                    </div>
+                    {surfaces.length > 0 && (
+                      <div className="flex gap-1 mb-3">
+                        {surfaces.map((s) => {
+                          const col = surfaceColor(s);
+                          return (
+                            <span key={s} className="text-xs px-2 py-0.5 rounded-full font-medium"
+                              style={{ backgroundColor: col.bg, color: col.text }}>
+                              {s}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {estSelectionne && (
+                      <div className="border-t border-gray-100 pt-3">
+                        <p className="text-xs text-gray-500 mb-2 flex items-center gap-1 font-medium">
+                          <Clock size={11} /> Créneaux disponibles aujourd'hui
+                        </p>
+                        <div className="flex gap-2 flex-wrap">
+                          {creneaux.map((c) => (
+                            <button key={c}
+                              onClick={(e) => { e.stopPropagation(); setCreneauSelectionne(c); }}
+                              className="px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
+                              style={{ backgroundColor: creneauSelectionne === c ? couleurSaison : "#F3F4F6", color: creneauSelectionne === c ? "white" : "#374151" }}>
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                        {creneauSelectionne && creneauSelectionne !== "Libre accès" && (
+                          <button onClick={(e) => { e.stopPropagation(); confirmerReservation(); }}
+                            disabled={saving}
+                            className="w-full mt-3 py-2.5 rounded-xl text-white font-bold text-sm transition-all"
+                            style={{ backgroundColor: saving ? "#9CA3AF" : couleurSaison }}>
+                            {saving ? "Réservation en cours..." : `Réserver ${creneauSelectionne} →`}
+                          </button>
+                        )}
+                        {creneauSelectionne === "Libre accès" && (
+                          <p className="text-xs text-gray-400 mt-2 text-center">Court en libre accès — aucune réservation nécessaire</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {creneauSelectionne && creneauSelectionne !== "Libre accès" && (
-                    <button onClick={confirmerReservation}
-                      className="w-full mt-3 py-2.5 rounded-xl text-white font-bold text-sm"
-                      style={{ backgroundColor: couleurSaison }}>
-                      Réserver {creneauSelectionne} →
-                    </button>
-                  )}
-                </div>
-              )}
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       {reservationConfirmee && (
         <div className="fixed bottom-24 left-4 right-4 bg-green-500 text-white text-center py-3 rounded-2xl font-bold shadow-lg z-50">
           ✅ Réservation confirmée !
+        </div>
+      )}
+      {reservationErreur && (
+        <div className="fixed bottom-24 left-4 right-4 bg-red-500 text-white text-center py-3 rounded-2xl font-bold shadow-lg z-50">
+          ❌ Erreur lors de la réservation
         </div>
       )}
     </div>
