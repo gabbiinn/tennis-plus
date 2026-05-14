@@ -62,7 +62,14 @@ export default function TournoisScreen() {
   };
 
   const sInscrire = async (tournamentId) => {
-    if (!currentUser || inscriptionsUser.includes(tournamentId)) return;
+    if (!currentUser) {
+      afficherToast("Non connecté — reconnecte-toi", false);
+      return;
+    }
+    if (inscriptionsUser.includes(tournamentId)) {
+      afficherToast("Déjà inscrit à ce tournoi", false);
+      return;
+    }
     setInscribing(tournamentId);
     const { error } = await supabase.from("tournament_registrations").insert({
       tournament_id: tournamentId,
@@ -80,7 +87,10 @@ export default function TournoisScreen() {
   };
 
   const seDesinscrire = async (tournamentId) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      afficherToast("Non connecté — reconnecte-toi", false);
+      return;
+    }
     const { error } = await supabase
       .from("tournament_registrations")
       .delete()
