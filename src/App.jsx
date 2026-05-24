@@ -13,13 +13,17 @@ import MessagesScreen from './screens/MessagesScreen';
 import TournoisScreen from './screens/TournoisScreen';
 import ProfilScreen from './screens/ProfilScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import InstallScreen from './screens/InstallScreen';
 
 export const couleurSaison = getCouleurSaison();
 export const nomSaison = getNomSaison();
 
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
 export default function App() {
   const { user, loading } = useAuth();
   const [profilExiste, setProfilExiste] = useState(null);
+  const [installVu, setInstallVu] = useState(() => isStandalone || !!localStorage.getItem('install_vu'));
 
   useEffect(() => {
     if (!user) return;
@@ -34,6 +38,13 @@ export default function App() {
     document.documentElement.style.setProperty('--couleur-saison', couleurSaison);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', couleurSaison);
   }, []);
+
+  if (!installVu) {
+    return <InstallScreen onIgnorer={() => {
+      localStorage.setItem('install_vu', '1');
+      setInstallVu(true);
+    }} />;
+  }
 
   if (loading || (user && profilExiste === null)) {
     return (
