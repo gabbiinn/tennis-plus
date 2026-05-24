@@ -75,14 +75,37 @@ function TournoisProfil() {
   );
 }
 
-const BADGES = [
-  { id: 1, emoji: "🎾", nom: "Premier match", desc: "Tu as joué ton 1er match", obtenu: true },
-  { id: 2, emoji: "🏆", nom: "Finaliste", desc: "Finaliste d'un tournoi amical", obtenu: true },
-  { id: 3, emoji: "🔥", nom: "3 victoires d'affilée", desc: "3 matchs gagnés de suite", obtenu: true },
-  { id: 4, emoji: "🤝", nom: "Sociable", desc: "5 partenaires différents", obtenu: false },
-  { id: 5, emoji: "⭐", nom: "Régulier", desc: "10 matchs joués", obtenu: false },
-  { id: 6, emoji: "👑", nom: "Champion", desc: "Gagner un tournoi amical", obtenu: false },
+const BADGES_DEF = [
+  { id: 1, emoji: "🎾", nom: "Premier match", desc: "Tu as joué ton 1er match" },
+  { id: 2, emoji: "🏆", nom: "Finaliste", desc: "Finaliste d'un tournoi amical" },
+  { id: 3, emoji: "🔥", nom: "3 victoires d'affilée", desc: "3 matchs gagnés de suite" },
+  { id: 4, emoji: "🤝", nom: "Sociable", desc: "5 partenaires différents" },
+  { id: 5, emoji: "⭐", nom: "Régulier", desc: "10 matchs joués" },
+  { id: 6, emoji: "👑", nom: "Champion", desc: "Gagner un tournoi amical" },
 ];
+
+const computeBadges = (matches, userId, inscriptions) => {
+  const played = matches.filter(m => m.winner_id !== null);
+  const wins = played.filter(m => m.winner_id === userId);
+  const partenaires = new Set(matches.map(m => m.player1_id === userId ? m.player2_id : m.player1_id));
+
+  const sorted = [...played].sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+  let maxStreak = 0, streak = 0;
+  sorted.forEach(m => {
+    if (m.winner_id === userId) { streak++; maxStreak = Math.max(maxStreak, streak); }
+    else { streak = 0; }
+  });
+
+  return BADGES_DEF.map(b => ({
+    ...b,
+    obtenu: b.id === 1 ? matches.length > 0
+          : b.id === 2 ? false
+          : b.id === 3 ? maxStreak >= 3
+          : b.id === 4 ? partenaires.size >= 5
+          : b.id === 5 ? matches.length >= 10
+          : false,
+  }));
+};
 
 const SERIES = ["NC","40","30/4","30/3","30/2","30/1","30","15/5","15/4","15/3","15/2","15/1","15","5/6","4/6","3/6","2/6","1/6","0","-2/6","-4/6","-15","-30"];
 const DISPOS = ["Matin semaine","Soir semaine","Week-end matin","Week-end après-midi","Flexible"];
@@ -102,13 +125,40 @@ export default function ProfilScreen() {
   const [profilTemp, setProfilTemp] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [badges, setBadges] = useState(BADGES_DEF.map(b => ({ ...b, obtenu: false })));
+  const [matches, setMatches] = useState([]);
+  const [adversaires, setAdversaires] = useState({});
 
   useEffect(() => {
     const charger = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profils").select("*").eq("id", user.id).single();
-      if (data) setProfil(data);
+
+      const [{ data: profilData }, { data: matchesData }, { data: inscrData }] = await Promise.all([
+        supabase.from("profils").select("*").eq("id", user.id).single(),
+        supabase.from("matches").select("*").or(`player1_id.eq.${user.id},player2_id.eq.${user.id}`).order("scheduled_at", { ascending: false }),
+        supabase.from("tournament_registrations").select("tournament_id").eq("user_id", user.id),
+      ]);
+
+      if (profilData) setProfil(profilData);
+      if (matchesData) {
+        setBadges(computeBadges(matchesData, user.id, inscrData || []));
+        setMatches(matchesData);
+
+        const adversaireIds = [...new Set(matchesData.map(m =>
+          m.player1_id === user.id ? m.player2_id : m.player1_id
+        ).filter(Boolean))];
+
+        if (adversaireIds.length > 0) {
+          const { data: profilsAdv } = await supabase
+            .from("profils").select("id, nom, serie").in("id", adversaireIds);
+          if (profilsAdv) {
+            const map = {};
+            profilsAdv.forEach(p => { map[p.id] = p; });
+            setAdversaires(map);
+          }
+        }
+      }
       setLoading(false);
     };
     charger();
@@ -139,6 +189,18 @@ export default function ProfilScreen() {
   }
 
   if (!profil) return null;
+
+  const userId = profil.id;
+  const matchesAvecResultat = matches.filter(m => m.winner_id !== null);
+  const victoires = matchesAvecResultat.filter(m => m.winner_id === userId).length;
+  const defaites = matchesAvecResultat.filter(m => m.winner_id !== userId).length;
+  const winRate = matchesAvecResultat.length > 0 ? Math.round((victoires / matchesAvecResultat.length) * 100) : null;
+  const dernierMatchs = matches.slice(0, 5);
+
+  const formatDate = (d) => {
+    if (!d) return "";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -181,7 +243,7 @@ export default function ProfilScreen() {
 
       <div className="bg-white border-b border-gray-100 px-4 py-2 sticky top-0 z-10">
         <div className="flex gap-1">
-          {[{ id: "badges", label: "🏅 Badges" }, { id: "tournois", label: "🏆 Tournois" }].map((o) => (
+          {[{ id: "stats", label: "📊 Stats" }, { id: "badges", label: "🏅 Badges" }, { id: "tournois", label: "🏆 Tournois" }].map((o) => (
             <button key={o.id} onClick={() => setOnglet(o.id)}
               className="flex-1 py-2 rounded-xl text-xs font-bold transition-all"
               style={{ backgroundColor: onglet === o.id ? couleurSaison : "#F3F4F6", color: onglet === o.id ? "white" : "#6B7280" }}>
@@ -192,13 +254,87 @@ export default function ProfilScreen() {
       </div>
 
       <div className="px-4 mt-4 pb-24">
+        {onglet === "stats" && (
+          <div className="flex flex-col gap-4">
+            {matches.length === 0 ? (
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 text-center text-gray-400">
+                <p className="text-3xl mb-2">🎾</p>
+                <p className="font-medium text-sm">Aucun match enregistré</p>
+                <p className="text-xs mt-1">Saisis ton score après chaque match !</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
+                    <p className="text-2xl font-black">{matches.length}</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mt-1">Joués</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
+                    <p className="text-2xl font-black" style={{ color: "#22C55E" }}>{victoires}</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mt-1">Victoires</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
+                    <p className="text-2xl font-black" style={{ color: "#EF4444" }}>{defaites}</p>
+                    <p className="text-xs uppercase tracking-wide text-gray-400 mt-1">Défaites</p>
+                  </div>
+                </div>
+
+                {winRate !== null && (
+                  <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Win rate</p>
+                    <p className="text-xl font-black" style={{ color: winRate >= 50 ? "#22C55E" : "#EF4444" }}>
+                      {winRate}%
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-500 px-4 pt-4 pb-2">Derniers matchs</p>
+                  {dernierMatchs.map((m, i) => {
+                    const advId = m.player1_id === userId ? m.player2_id : m.player1_id;
+                    const adv = adversaires[advId];
+                    const estVictoire = m.winner_id === userId;
+                    const estDefaite = m.winner_id && m.winner_id !== userId;
+                    return (
+                      <div key={m.id}
+                        className={`flex items-center gap-3 px-4 py-3 ${i < dernierMatchs.length - 1 ? "border-b border-gray-50" : ""}`}>
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                          style={{
+                            backgroundColor: estVictoire ? "#DCFCE7" : estDefaite ? "#FEE2E2" : "#F3F4F6",
+                            color: estVictoire ? "#22C55E" : estDefaite ? "#EF4444" : "#6B7280",
+                          }}>
+                          {estVictoire ? "V" : estDefaite ? "D" : "—"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold truncate">
+                            {adv ? adv.nom : "Adversaire"}
+                            {adv?.serie && <span className="text-xs font-normal text-gray-400 ml-1">({adv.serie})</span>}
+                          </p>
+                          <p className="text-xs text-gray-400">{m.score || "Score non renseigné"}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs font-bold"
+                            style={{ color: estVictoire ? "#22C55E" : estDefaite ? "#EF4444" : "#6B7280" }}>
+                            {estVictoire ? "Victoire" : estDefaite ? "Défaite" : "—"}
+                          </p>
+                          <p className="text-xs text-gray-400">{formatDate(m.scheduled_at)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {onglet === "badges" && (
           <div>
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-              {BADGES.filter((b) => b.obtenu).length}/{BADGES.length} badges obtenus
+              {badges.filter((b) => b.obtenu).length}/{badges.length} badges obtenus
             </p>
             <div className="grid grid-cols-2 gap-3">
-              {BADGES.map((b) => (
+              {badges.map((b) => (
                 <div key={b.id} className="bg-white rounded-2xl p-4 border text-center"
                   style={{ borderColor: b.obtenu ? couleurSaison : "#F3F4F6", opacity: b.obtenu ? 1 : 0.5 }}>
                   <div className="text-3xl mb-2">{b.emoji}</div>
